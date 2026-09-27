@@ -1,6 +1,6 @@
 # CodexTouchBar
 
-A lightweight native macOS companion that shows Codex or Claude Desktop tasks and remaining quota as colored glass blocks on MacBook Pro Touch Bar models. Version 0.2.6 adds Claude support alongside the existing Codex integration.
+A lightweight native macOS companion that shows Codex or Claude Desktop tasks and remaining quota as colored glass blocks on MacBook Pro Touch Bar models. Version 0.2.7 fixes a Claude session monitor shutdown deadlock and keeps Claude usage live instead of falling back to stale history.
 
 ## Features
 
@@ -24,10 +24,10 @@ Apple only exposes public Touch Bar APIs to the foreground app. Persistent prese
 The same app supports ordinary chats, Claude Code, and Cowork. No separate companion process is needed.
 
 1. Sign into Claude Code with the same account used in Claude Desktop. If the existing login is expired, run `/login` in Claude Code yourself.
-2. In the CodexTouchBar menu, choose **连接 Claude 用量…**. Approve the macOS Keychain prompt if shown. Automatic polling never opens an authentication prompt.
+2. Usage normally needs no setup. The token is read through `/usr/bin/security`, which the Keychain item already trusts because Claude Code writes it with that tool, so there is no prompt and ad-hoc re-signing does not break access. Claude Desktop never refreshes Claude Code's login, so when the token has expired or is rejected the app runs `claude -p /usage` at most every 5 minutes: a local command that sends no model request and saves no session, but lets Claude Code refresh its own token. If that still fails, run `/login` in Claude Code, or choose **连接 Claude 用量…** to approve the in-app Keychain lookup.
 3. Optional: choose **启用 Claude 侧栏任务访问**, then enable CodexTouchBar in macOS **Privacy & Security → Accessibility** to also read and press ordinary chat/Cowork sidebar rows. Keep the Claude sidebar open. Claude Code sessions need no permission.
 
-The local bundle is ad-hoc signed. Replacing it may invalidate its Accessibility approval even if Settings still shows the old switch enabled. Re-register the installed app in Accessibility when needed. Missing permission displays **需要辅助功能权限**, rather than claiming no task is running. The `--resident-state-check` diagnostic queries the running companion and returns only permission/provider state and counts; a separate CLI scan may inherit a different responsible process’s permission.
+The local bundle is ad-hoc signed. Replacing it may invalidate its Accessibility approval even if Settings still shows the old switch enabled. Re-register the installed app in Accessibility when needed. Missing permission displays **需要辅助功能权限**, rather than claiming no task is running. The `--resident-state-check` diagnostic queries the running companion and returns only permission/provider state, task counts, and safe Claude quota diagnostics: source, stale state, last update time, a fixed error category, and the existing user-facing error message; a separate CLI scan may inherit a different responsible process’s permission.
 
 Claude Code sessions refresh every second. While Claude is foreground, sidebar rows refresh every 5 seconds. Usage refreshes every 60 seconds; returning to Claude requests a refresh if the last attempt was at least 30 seconds ago. Automatic requests pause in the background. Tap either Claude quota block for an immediate manual refresh. Requests cannot overlap; failures back off from 60 seconds to at most 15 minutes.
 

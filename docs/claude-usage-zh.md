@@ -1,11 +1,11 @@
-# CodexTouchBar 0.2.6 · Claude 使用说明
+# CodexTouchBar 0.2.7 · Claude 使用说明
 
-这是在原 CodexTouchBar 内加入 Claude Desktop 支持的版本。切换到 Claude 时显示 Claude 数据，切回 Codex 时显示 Codex 数据。当前版本为 0.2.6（build 19）。
+这是在原 CodexTouchBar 内加入 Claude Desktop 支持的版本。切换到 Claude 时显示 Claude 数据，切回 Codex 时显示 Codex 数据。当前版本为 0.2.7（build 20）。本版修复了 Claude 会话监视器停止时可能发生的生命周期死锁，并让用量不再卡在「旧」数据。更新临时签名构建后，如果 macOS 将其识别为新的应用身份，可能需要重新登记辅助功能权限。
 
 ## 使用前
 
 1. 在 Claude Code 内运行 `/login`，使用与 Claude Mac 桌面版相同的账号。凭据过期时需重新登录。
-2. 从新版菜单选择「连接 Claude 用量…」，按需允许 macOS 钥匙串访问。若仍提示凭据不可用，先完成这项钥匙串授权；授权成功后若凭据已过期，再在 Claude Code 中重新运行 `/login`。
+2. 用量通常无需额外操作：App 通过系统自带的 `security` 工具读取 Claude Code 的登录凭据，不弹钥匙串授权，也不受重新签名影响。桌面版不会刷新 Claude Code 的登录，凭据过期时 App 会运行一次 `claude -p /usage`（本地命令，不调用模型、不保存会话），让 Claude Code 自己刷新，最多每 5 分钟一次。只有这样仍失败时，才需要在 Claude Code 中重新 `/login`，或用菜单「连接 Claude 用量…」走应用内钥匙串授权。
 3. （可选）从菜单选择「启用 Claude 侧栏任务访问」，在系统设置 → 隐私与安全性 → 辅助功能中允许 CodexTouchBar。这一步只用于显示普通聊天和 Cowork 任务，Claude 的侧栏需要展开。Claude Code 任务不需要这项权限。
 
 ## 显示和刷新
@@ -27,10 +27,10 @@
 - 0.2.6：3 个 Claude Code 任务同时运行时，构建版预览显示 3 个任务按钮，标题与 Claude 侧栏一致，没有重复；此时辅助功能未授权也不影响。
 - 0.2.6：点按所用的 `claude://code/continue?session=…` 已实测，能把 Claude 主窗口切到对应会话，也能切回原会话。
 - 进程已退出或进程号被其他程序复用的会话登记会被忽略，不会显示成一直在运行的任务。
-- 用量：0.2.5 起，用户完成重新登录和钥匙串授权后反馈可用。
+- 用量：0.2.7 实测，Claude Code 登录过期约 17 小时时，`claude -p /usage` 刷新后凭据恢复 8 小时有效期，用量接口返回 5 小时与本周数据。
 - 普通聊天、Cowork 的活动状态与实体 Touch Bar 点按仍需随实际使用持续验证。
 - 切换到菜单或预览时，Claude 任务快照保持更新。
-- 辅助功能授权与钥匙串授权相互独立。非交互读取被拒绝时，请通过「连接 Claude 用量…」触发系统授权；不要仅重复登录。
+- 辅助功能授权与钥匙串授权相互独立。用量读取不依赖辅助功能。
 
 用量接口、Claude 元数据和 Touch Bar 展示部分依赖未公开的内部接口。若后续 Claude/macOS 更新改变接口，可能需要兼容性修复。登录凭据仅在内存中用于请求 Anthropic 用量接口，不写入本项目。会话登记只读取进程号、桌面会话 ID、标题、状态和时间，不打开旁边的 `.key` 文件，不读取工作目录、聊天正文或会话 transcript 文件。
 

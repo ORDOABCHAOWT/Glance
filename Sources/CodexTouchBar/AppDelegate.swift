@@ -45,6 +45,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         "accessibility": self.claudeSidebarMonitor.isTrusted,
                         "sidebarNodes": self.claudeSidebarMonitor.diagnosticCounts.sidebarNodes,
                         "titledRows": self.claudeSidebarMonitor.diagnosticCounts.titledRows
+                        ,"quotaSource": self.claudeSnapshot.quotaSource ?? "none"
+                        ,"quotaStale": self.claudeSnapshot.provider == .claude && (self.claudeSnapshot.refreshError != nil || self.claudeSnapshot.quotaSource == "Claude 桌面历史" || self.claudeSnapshot.refreshedAt.map { Date().timeIntervalSince($0) > 120 } ?? true)
+                        ,"quotaLastUpdated": self.claudeSnapshot.refreshedAt?.ISO8601Format() ?? "none"
+                        ,"quotaErrorCategory": self.claudeStore.lastErrorCategory ?? "none"
+                        ,"quotaError": self.claudeSnapshot.refreshError ?? "none"
                     ]
                     DistributedNotificationCenter.default().postNotificationName(Notification.Name("com.whitney.CodexTouchBar.state-response"), object: requestID, userInfo: state, deliverImmediately: true)
                 }

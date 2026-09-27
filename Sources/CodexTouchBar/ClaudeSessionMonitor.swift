@@ -13,10 +13,15 @@ final class ClaudeSessionMonitor {
     private let completedDisplay: TimeInterval = 12
 
     private let queue = DispatchQueue(label: "com.whitney.CodexTouchBar.claude-sessions", qos: .utility)
+    private let queueKey = DispatchSpecificKey<UInt8>()
     private var timer: DispatchSourceTimer?
     private var activeTasks: [String: TaskSnapshot] = [:]
     private var completedTasks: [String: TaskSnapshot] = [:]
     private var published: [TaskSnapshot]?
+
+    init() {
+        queue.setSpecific(key: queueKey, value: 1)
+    }
 
     static var registryDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
@@ -35,12 +40,17 @@ final class ClaudeSessionMonitor {
     }
 
     func stop() {
-        queue.sync {
-            timer?.cancel()
-            timer = nil
-            activeTasks.removeAll()
-            completedTasks.removeAll()
-            published = nil
+        let cleanup = {
+            self.timer?.cancel()
+            self.timer = nil
+            self.activeTasks.removeAll()
+            self.completedTasks.removeAll()
+            self.published = nil
+        }
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            cleanup()
+        } else {
+            queue.sync(execute: cleanup)
         }
     }
 
