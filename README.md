@@ -60,6 +60,20 @@ swift run CodexTouchBarCoreChecks
 
 The app bundle is written to `dist/CodexTouchBar.app`.
 
+### Signing identity
+
+`build_app.sh` signs ad hoc unless `CODESIGN_IDENTITY` names a code signing identity:
+
+```bash
+./scripts/create_local_signing_identity.sh        # once, by hand; creates a self-signed identity in the login keychain
+export CODESIGN_IDENTITY="Whitney Local Code Signing"
+./scripts/build_app.sh
+```
+
+An ad hoc signature is identified by its code hash, which changes with every build, so macOS drops the Accessibility approval. With a fixed identity the designated requirement is the bundle identifier plus the certificate, which stays the same across builds. The first build signed this way still needs Accessibility granted once. The script header explains what it changes and how to undo it. CI and release builds remain ad hoc signed.
+
+`scripts/clt-swift-env.sh` holds the workarounds for building with Command Line Tools only. The same file is kept in the other Swift app repositories; CI checks it against `scripts/clt-swift-env.sh.sha256`.
+
 The layout follows Apple's Touch Bar guidance: use AppKit controls and convenience sizing, let the system manage constrained composition, and use a principal item instead of hard-coded centering. See Apple's [NSTouchBar](https://developer.apple.com/documentation/appkit/nstouchbar?changes=l_11), [NSTouchBarItem](https://developer.apple.com/documentation/appkit/nstouchbaritem?language=objc), and [Buttons HIG](https://developer.apple.com/design/human-interface-guidelines/buttons).
 
 ## Task status connection
