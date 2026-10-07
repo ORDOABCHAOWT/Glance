@@ -1,0 +1,9 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="#D97757"/>
+  <g fill="#FAF6EC">
+    <rect x="232" y="352" width="560" height="96" rx="48" transform="rotate(-3 512 400)"/>
+    <rect x="232" y="496" width="400" height="96" rx="48" transform="rotate(2 432 544)"/>
+    <rect x="232" y="640" width="250" height="96" rx="48" transform="rotate(-2 357 688)"/>
+  </g>
+  <circle cx="720" cy="688" r="44" fill="#3B2A22"/>
+</svg>

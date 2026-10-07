@@ -13,7 +13,7 @@ final class ClaudeSidebarMonitor {
     func requestPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
-        permissionMessage = isTrusted ? nil : "请在系统设置中允许 CodexTouchBar 控制 Claude Desktop"
+        permissionMessage = isTrusted ? nil : "请在系统设置中允许 Glance 控制 Claude Desktop"
     }
 
     func scan() -> [TaskSnapshot] {

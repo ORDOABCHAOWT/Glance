@@ -174,8 +174,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "CodexTouchBar")
-        item.button?.toolTip = "CodexTouchBar"
+        item.button?.image = NSImage(systemSymbolName: "waveform.path.ecg", accessibilityDescription: "Glance")
+        item.button?.toolTip = "Glance"
         let menu = NSMenu()
 
         let preview = NSMenuItem(title: "显示界面预览", action: #selector(showPreview), keyEquivalent: "p")
@@ -202,7 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshConnectionMenuTitle()
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "退出 CodexTouchBar", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "退出 Glance", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         item.menu = menu
@@ -249,7 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showConnectionAlert(success: Bool, message: String) {
         let alert = NSAlert()
         alert.alertStyle = success ? .informational : .warning
-        alert.messageText = success ? "CodexTouchBar" : "操作未完成"
+        alert.messageText = success ? "Glance" : "操作未完成"
         alert.informativeText = message
         alert.runModal()
     }

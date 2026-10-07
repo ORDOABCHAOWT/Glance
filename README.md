@@ -1,6 +1,6 @@
-# CodexTouchBar
+# Glance
 
-A lightweight native macOS companion that shows Codex or Claude Desktop tasks and remaining quota as colored glass blocks on MacBook Pro Touch Bar models. Version 0.2.7 fixes a Claude session monitor shutdown deadlock and keeps Claude usage live instead of falling back to stale history.
+Glance (formerly CodexTouchBar; the repository, bundle identifier and executable keep the old name) is a lightweight native macOS companion that shows Codex or Claude Desktop tasks and remaining quota as colored glass blocks on MacBook Pro Touch Bar models. Version 0.2.8 renames the app to Glance, gives it a new icon and shows the same idle text for Claude as for Codex. Version 0.2.7 fixes a Claude session monitor shutdown deadlock and keeps Claude usage live instead of falling back to stale history.
 
 ## Features
 
@@ -25,7 +25,7 @@ The same app supports ordinary chats, Claude Code, and Cowork. No separate compa
 
 1. Sign into Claude Code with the same account used in Claude Desktop. If the existing login is expired, run `/login` in Claude Code yourself.
 2. Usage normally needs no setup. The token is read through `/usr/bin/security`, which the Keychain item already trusts because Claude Code writes it with that tool, so there is no prompt and ad-hoc re-signing does not break access. Claude Desktop never refreshes Claude Code's login, so when the token has expired or is rejected the app runs `claude -p /usage` at most every 5 minutes: a local command that sends no model request and saves no session, but lets Claude Code refresh its own token. If that still fails, run `/login` in Claude Code, or choose **连接 Claude 用量…** to approve the in-app Keychain lookup.
-3. Optional: choose **启用 Claude 侧栏任务访问**, then enable CodexTouchBar in macOS **Privacy & Security → Accessibility** to also read and press ordinary chat/Cowork sidebar rows. Keep the Claude sidebar open. Claude Code sessions need no permission.
+3. Optional: choose **启用 Claude 侧栏任务访问**, then enable Glance in macOS **Privacy & Security → Accessibility** to also read and press ordinary chat/Cowork sidebar rows. Keep the Claude sidebar open. Claude Code sessions need no permission.
 
 The local bundle is ad-hoc signed. Replacing it may invalidate its Accessibility approval even if Settings still shows the old switch enabled. Re-register the installed app in Accessibility when needed. Missing permission displays **需要辅助功能权限**, rather than claiming no task is running. The `--resident-state-check` diagnostic queries the running companion and returns only permission/provider state, task counts, and safe Claude quota diagnostics: source, stale state, last update time, a fixed error category, and the existing user-facing error message; a separate CLI scan may inherit a different responsible process’s permission.
 
@@ -46,7 +46,7 @@ From each registration the app decodes only the pid, desktop session ID, title, 
 For safe local preview alongside the installed app:
 
 ```bash
-dist/CodexTouchBar.app/Contents/MacOS/CodexTouchBar --preview-only --provider claude --preview
+dist/Glance.app/Contents/MacOS/CodexTouchBar --preview-only --provider claude --preview
 ```
 
 Preview-only does not install a Touch Bar, start the Codex socket/client, or poll network usage automatically. Explicitly clicking a quota block or the connection menu still requests usage. A provider pin affects only the preview.
@@ -58,7 +58,7 @@ swift run CodexTouchBarCoreChecks
 ./scripts/build_app.sh
 ```
 
-The app bundle is written to `dist/CodexTouchBar.app`.
+The app bundle is written to `dist/Glance.app`.
 
 ### Signing identity
 

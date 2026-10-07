@@ -15,7 +15,7 @@ final class PreviewWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "CodexTouchBar 预览"
+        window.title = "Glance 预览"
         window.isReleasedWhenClosed = false
         window.center()
         super.init(window: window)
@@ -35,7 +35,7 @@ final class PreviewWindowController: NSWindowController {
         dashboardView.update(snapshot: snapshot)
         let taskCount = snapshot.tasks.count
         let provider = snapshot.provider == .claude ? "Claude" : "Codex"
-        window?.title = "CodexTouchBar · \(provider) 预览"
+        window?.title = "Glance · \(provider) 预览"
         var lines = ["\(provider) · 显示 \(min(6, taskCount))/\(taskCount) 个任务 · \(snapshot.quotas.isEmpty ? "用量不可用" : "剩余额度")"]
         var provenance: [String] = []
         if let source = snapshot.quotaSource { provenance.append("来源：\(source)") }

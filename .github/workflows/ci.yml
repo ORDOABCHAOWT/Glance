@@ -24,10 +24,10 @@ jobs:
       - name: Build app bundle
         run: ./scripts/build_app.sh
       - name: Verify bundle signature
-        run: codesign --verify --deep --strict dist/CodexTouchBar.app
+        run: codesign --verify --deep --strict dist/Glance.app
       - name: Upload unsigned app bundle
         uses: actions/upload-artifact@v4
         with:
-          name: CodexTouchBar-unsigned
-          path: dist/CodexTouchBar.app
+          name: Glance-unsigned
+          path: dist/Glance.app
           if-no-files-found: error

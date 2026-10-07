@@ -66,7 +66,7 @@ enum HookConfiguration {
 
     private static func makeBlock(command: String) throws -> String {
         let commandLiteral = try jsonStringLiteral(command)
-        let statusLiteral = try jsonStringLiteral("CodexTouchBar 正在同步状态")
+        let statusLiteral = try jsonStringLiteral("Glance 正在同步状态")
         var lines = [beginMarker]
         for event in events {
             lines += [

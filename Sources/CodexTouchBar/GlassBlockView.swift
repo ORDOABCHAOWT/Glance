@@ -372,8 +372,11 @@ final class DashboardStripView: NSView {
 
             if visibleTasks.isEmpty {
                 let block = GlassBlockView()
-                let label = needsClaudeAccess ? "需要辅助功能权限" : "等待任务"
-                block.set(text: label, accent: needsClaudeAccess ? .orange : .gray)
+                // Same idle text for both providers. A missing Accessibility grant only
+                // hides Claude's sidebar chats (Code sessions come from the registry), so
+                // it is explained in the tooltip and the status menu, not on the bar.
+                block.set(text: "等待任务", accent: .gray)
+                block.toolTip = needsClaudeAccess ? snapshot.taskError : nil
                 taskStack.addArrangedSubview(block)
             } else {
                 for task in visibleTasks {
