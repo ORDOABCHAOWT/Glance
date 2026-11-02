@@ -36,6 +36,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     let state: [String: Any] = [
+                        "codexQuotaUpdated": self.codexSnapshot.refreshedAt?.ISO8601Format() ?? "none",
+                        "codexQuotaCount": self.codexSnapshot.quotas.count,
+                        "codexQuotaError": self.codexSnapshot.quotaError ?? "none",
+                        "codexQuotas": self.codexSnapshot.quotas.map { "\($0.kind.rawValue)=\($0.remainingPercent)%" }.joined(separator: " "),
                         "pid": ProcessInfo.processInfo.processIdentifier,
                         "foreground": self.currentProvider?.rawValue ?? "other",
                         "lastProvider": self.lastSupportedProvider.rawValue,

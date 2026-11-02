@@ -14,13 +14,30 @@ final class CodexAppServerClient {
     private var requestKinds: [Int: RequestKind] = [:]
     private var nextRequestID = 1
     private var timer: DispatchSourceTimer?
+    private var stdoutHandle: FileHandle?
+    private var stderrHandle: FileHandle?
+    private var connectionID = UUID()
+    private var requestDeadlines: [Int: Date] = [:]
+    private var lastRefresh = Date.distantPast
+    private let executableResolver: () -> URL?
+
+    init(executableResolver: @escaping () -> URL? = CodexExecutableLocator.find) {
+        self.executableResolver = executableResolver
+    }
     private var isInitialized = false
     private var isStopped = false
 
     func start() {
         queue.async { [weak self] in
-            self?.isStopped = false
-            self?.launchIfNeeded()
+            guard let self else { return }
+            self.isStopped = false
+            guard self.timer == nil else { return }
+            let timer = DispatchSource.makeTimerSource(queue: self.queue)
+            timer.schedule(deadline: .now() + 5, repeating: 5)
+            timer.setEventHandler { [weak self] in self?.maintainConnection() }
+            timer.resume()
+            self.timer = timer
+            self.launchIfNeeded()
         }
     }
 
@@ -29,18 +46,50 @@ final class CodexAppServerClient {
             isStopped = true
             timer?.cancel()
             timer = nil
-            input?.closeFile()
-            input = nil
-            if let process, process.isRunning { process.terminate() }
-            process = nil
+            resetConnection()
         }
     }
 
     deinit { stop() }
 
+    func requestRefresh() {
+        queue.async { [weak self] in
+            guard let self, !self.isStopped else { return }
+            if self.isInitialized { self.refresh() }
+            else { self.launchIfNeeded() }
+        }
+    }
+
+    private func resetConnection() {
+        connectionID = UUID()
+        stdoutHandle?.readabilityHandler = nil
+        stderrHandle?.readabilityHandler = nil
+        stdoutHandle = nil
+        stderrHandle = nil
+        input?.closeFile()
+        input = nil
+        if let process, process.isRunning { process.terminate() }
+        process = nil
+        isInitialized = false
+        outputBuffer.removeAll()
+        requestKinds.removeAll()
+        requestDeadlines.removeAll()
+    }
+
+    private func maintainConnection() {
+        guard !isStopped else { return }
+        if requestDeadlines.values.contains(where: { $0 < Date() }) {
+            emitError("Codex 数据连接超时，正在重连")
+            resetConnection()
+        }
+        if process?.isRunning != true { launchIfNeeded() }
+        else if isInitialized && Date().timeIntervalSince(lastRefresh) >= 60 { refresh() }
+    }
+
     private func launchIfNeeded() {
-        guard process?.isRunning != true else { return }
-        guard let executable = findCodexExecutable() else {
+        guard !isStopped, process?.isRunning != true else { return }
+        resetConnection()
+        guard let executable = executableResolver() else {
             emitError("找不到 Codex App Server")
             return
         }
@@ -54,18 +103,27 @@ final class CodexAppServerClient {
         process.standardInput = stdinPipe
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
+        let generation = connectionID
         process.terminationHandler = { [weak self] _ in
-            self?.queue.asyncAfter(deadline: .now() + 5) {
-                guard self?.isStopped == false else { return }
-                self?.launchIfNeeded()
+            self?.queue.async {
+                guard let self, self.connectionID == generation, !self.isStopped else { return }
+                self.resetConnection()
+                self.emitError("Codex 数据连接已断开，正在重连")
             }
         }
-        stdoutPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        stdoutHandle = stdoutPipe.fileHandleForReading
+        stderrHandle = stderrPipe.fileHandleForReading
+        stdoutHandle?.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
-            guard !data.isEmpty else { return }
-            self?.queue.async { self?.consume(data) }
+            if data.isEmpty { handle.readabilityHandler = nil; return }
+            self?.queue.async {
+                guard let self, self.connectionID == generation else { return }
+                self.consume(data)
+            }
         }
-        stderrPipe.fileHandleForReading.readabilityHandler = { _ in _ = stderrPipe.fileHandleForReading.availableData }
+        stderrHandle?.readabilityHandler = { handle in
+            if handle.availableData.isEmpty { handle.readabilityHandler = nil }
+        }
 
         do {
             try process.run()
@@ -74,7 +132,8 @@ final class CodexAppServerClient {
             isInitialized = false
             sendInitialize()
         } catch {
-            emitError("无法启动 Codex App Server")
+            resetConnection()
+            emitError("无法启动 Codex App Server，正在重试")
         }
     }
 
@@ -99,21 +158,18 @@ final class CodexAppServerClient {
                 ],
             ],
         ])
-        send(["method": "initialized", "params": [:]])
     }
 
     private func beginPolling() {
         guard !isInitialized else { return }
         isInitialized = true
         refresh()
-        let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 60, repeating: 60)
-        timer.setEventHandler { [weak self] in self?.refresh() }
-        timer.resume()
-        self.timer = timer
+
     }
 
     private func refresh() {
+        guard !requestKinds.values.contains(where: { $0 == .rateLimits }) else { return }
+        lastRefresh = Date()
         let rateID = allocate(.rateLimits)
         send(["method": "account/rateLimits/read", "id": rateID, "params": [:]])
         let listID = allocate(.threadList)
@@ -151,13 +207,16 @@ final class CodexAppServerClient {
         }
         guard let id = (object["id"] as? NSNumber)?.intValue ?? object["id"] as? Int else { return }
         guard let kind = requestKinds.removeValue(forKey: id) else { return }
+        requestDeadlines.removeValue(forKey: id)
         if let error = object["error"] as? [String: Any] {
             let message = error["message"] as? String ?? "Codex 接口返回错误"
             emitError(message)
+            if kind == .initialize { resetConnection() }
             return
         }
         switch kind {
         case .initialize:
+            send(["method": "initialized", "params": [:]])
             beginPolling()
         case .rateLimits:
             do { emitQuotas(try RateLimitParser.parseResponse(object).windows) }
@@ -189,6 +248,7 @@ final class CodexAppServerClient {
     private func allocate(_ kind: RequestKind) -> Int {
         defer { nextRequestID += 1 }
         requestKinds[nextRequestID] = kind
+        requestDeadlines[nextRequestID] = Date().addingTimeInterval(45)
         return nextRequestID
     }
 
@@ -197,7 +257,10 @@ final class CodexAppServerClient {
         guard var data = try? JSONSerialization.data(withJSONObject: object) else { return }
         data.append(0x0A)
         do { try input.write(contentsOf: data) }
-        catch { emitError("Codex 数据连接已断开") }
+        catch {
+            emitError("Codex 数据连接已断开，正在重连")
+            resetConnection()
+        }
     }
 
     private func emitQuotas(_ windows: [QuotaWindow]) {
@@ -212,13 +275,4 @@ final class CodexAppServerClient {
         DispatchQueue.main.async { [weak self] in self?.onError?(message) }
     }
 
-    private func findCodexExecutable() -> URL? {
-        let candidates = [
-            "/Applications/ChatGPT.app/Contents/Resources/codex",
-            "/Applications/Codex.app/Contents/Resources/codex",
-            "/opt/homebrew/bin/codex",
-            "/usr/local/bin/codex",
-        ]
-        return candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }).map(URL.init(fileURLWithPath:))
-    }
 }

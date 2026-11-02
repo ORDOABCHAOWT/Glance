@@ -230,3 +230,11 @@ do {
     fputs("CodexTouchBarCoreChecks failed: \(error)\n", stderr)
     exit(EXIT_FAILURE)
 }
+
+let modernCodex = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+let legacyCodex = "/Applications/ChatGPT.app/Contents/Resources/codex"
+precondition(CodexExecutableLocator.find(applicationDirectories: ["/Applications"], isExecutable: { $0 == modernCodex || $0 == legacyCodex })?.path == modernCodex)
+precondition(CodexExecutableLocator.find(applicationDirectories: ["/Applications"], isExecutable: { $0 == legacyCodex })?.path == legacyCodex)
+precondition(CodexExecutableLocator.find(applicationDirectories: [], isExecutable: { $0 == "/opt/homebrew/bin/codex" })?.path == "/opt/homebrew/bin/codex")
+precondition(CodexExecutableLocator.find(applicationDirectories: ["/Applications"], isExecutable: { _ in false }) == nil)
+print("Codex executable discovery checks passed")

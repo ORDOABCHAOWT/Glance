@@ -86,6 +86,7 @@ final class StatusStore {
 
     func updateQuotas(_ windows: [QuotaWindow]) {
         snapshot.quotas = windows
+        snapshot.refreshedAt = Date()
         snapshot.quotaError = nil
     }
 

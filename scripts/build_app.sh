@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR=${0:A:h}
 PROJECT_DIR=${SCRIPT_DIR:h}
-APP_DIR="$PROJECT_DIR/dist/Glance.app"
+APP_DIR="${GLANCE_APP_OUTPUT:-$PROJECT_DIR/dist/Glance.app}"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
@@ -43,6 +43,8 @@ ditto "$BUILD_DIR/CodexTouchBar" "$MACOS_DIR/CodexTouchBar"
 ditto "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 ditto "$PROJECT_DIR/Resources/CodexTouchBar.icns" "$RESOURCES_DIR/CodexTouchBar.icns"
 chmod 755 "$MACOS_DIR/CodexTouchBar"
+# File-provider folders can attach Finder metadata while the bundle is assembled.
+xattr -cr "$APP_DIR"
 codesign --force --sign "$CODESIGN_IDENTITY" --timestamp=none "$APP_DIR"
 plutil -lint "$CONTENTS_DIR/Info.plist"
 codesign --verify --deep --strict "$APP_DIR"

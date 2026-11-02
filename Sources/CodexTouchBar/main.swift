@@ -3,6 +3,24 @@ import CodexTouchBarCore
 import Foundation
 import TouchBarPrivateBridge
 
+if CommandLine.arguments.contains("--codex-usage-check") {
+    let client = CodexAppServerClient()
+    client.onQuotas = { windows in
+        print(windows.map { "\($0.kind.rawValue)=\($0.remainingPercent)%" }.joined(separator: " "))
+        client.stop()
+        exit(windows.isEmpty ? EXIT_FAILURE : EXIT_SUCCESS)
+    }
+    client.onError = { message in fputs(message + "\n", stderr) }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 55) {
+        client.stop()
+        print("Codex 用量检查超时")
+        exit(EXIT_FAILURE)
+    }
+    client.start()
+    RunLoop.main.run()
+    exit(EXIT_FAILURE)
+}
+
 if CommandLine.arguments.contains("--resident-state-check") {
     let requestID = UUID().uuidString
     let center = DistributedNotificationCenter.default()
